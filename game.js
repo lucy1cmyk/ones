@@ -614,17 +614,9 @@ function isBoardFull() {
 
 /* =========================================================
   [Game 16] 최종 게임 종료 조건
-  - 종료 체크 시점: 모든 합성이 완료된 이후
-  - 조건 1: 5x5 그리드가 모두 차 있음
-  - 조건 2: 5x5 그리드 위에 대기숫자블럭이 남아 있음
+  - 두 대기블록 중 하나 이상이 배치 실패로 보드 밖에 남아 있으면 게임오버
+  - 배치 실패: 해당 열이 가득 찼으므로 블록을 배치하지 못함
 ========================================================= */
-function shouldEndGameAfterResolve() {
-  return isBoardFull() && GameState.activePair !== null;
-}
-
 function shouldEndGameAfterDropResolve(dropResult) {
-  return (
-    shouldEndGameAfterResolve() ||
-    Boolean(dropResult && dropResult.hasOverflowedBlocks)
-  );
+  return Boolean(dropResult && dropResult.hasOverflowedBlocks);
 }

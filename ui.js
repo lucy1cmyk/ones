@@ -224,21 +224,23 @@ async function handleDropActivePair() {
   renderBoardBlocks();
   await sleep(GameConfig.animationDelay);
 
-  await resolveBoardAfterDrop();
+  const hadMerge = await resolveBoardAfterDrop();
 
   /*
-    모든 합성이 끝난 뒤, 일부 대기숫자블럭이 보드 밖에 남았다면
-    보드가 꽉 차지 않아도 게임 종료.
+    1) 합성 성공: 중력 적용 후 다시 합성 검사 → 더 이상 합성 없으면 종료
+       → 새 대기숫자블럭 생성
+    2) 합성 실패: 두 개의 블록 중 하나 이상이 보드 밖에 남아 있는지 체크
+       → 보드 밖에 남아 있다면 게임오버
   */
   if (!GameState.isGameOver) {
-    if (shouldEndGameAfterDropResolve(result)) {
+    if (!hadMerge && shouldEndGameAfterDropResolve(result)) {
       GameState.isGameOver = true;
       await FirebaseAdapter.saveScore(GameState.score);
       showGameOverModal();
     } else {
       /*
-        모든 합성이 끝난 뒤 보드가 꽉 차 있지 않으면
-        다음 대기숫자블럭을 생성한다.
+        합성이 성공했거나, 합성이 없어도 대기블럭이
+        보드에 정상 배치된 경우 다음 대기숫자블럭 생성
       */
       if (!GameState.activePair) {
         spawnActivePair();
@@ -255,11 +257,11 @@ async function handleDropActivePair() {
   [UI 12] 드롭 이후 보드 처리
   - 합성 → 중력 → 재합성 반복
   - 모든 합성 완료 후 점수만 갱신
-  - 게임 종료 판정은 handleDropActivePair()에서
-    새 대기블럭 생성 후 처리
+  - 합성 발생 여부를 반환하여 게임 오버 조건 판정에 사용
 ========================================================= */
 async function resolveBoardAfterDrop() {
   let hasMerged = true;
+  let hadAnyMerge = false;
 
   while (hasMerged) {
     hasMerged = false;
@@ -268,6 +270,7 @@ async function resolveBoardAfterDrop() {
 
     if (groups.length > 0) {
       hasMerged = true;
+      hadAnyMerge = true;
 
       await animateMergeGroups(groups);
 
@@ -282,6 +285,7 @@ async function resolveBoardAfterDrop() {
   }
 
   updateScoreUI();
+  return hadAnyMerge;
 }
 
 /* =========================================================

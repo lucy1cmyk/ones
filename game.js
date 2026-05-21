@@ -331,7 +331,8 @@ function prepareDropActivePair() {
 
     return {
       success: false,
-      reason: "column-full"
+      reason: "column-full",
+      hasOverflowedBlocks
     };
   }
 

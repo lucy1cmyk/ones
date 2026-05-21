@@ -207,7 +207,7 @@ async function handleDropActivePair() {
   */
   if (!result.success) {
     if (result.reason === "column-full") {
-      if (shouldEndGameAfterResolve()) {
+      if (shouldEndGameAfterDropResolve(result)) {
         GameState.isGameOver = true;
         await FirebaseAdapter.saveScore(GameState.score);
         showGameOverModal();

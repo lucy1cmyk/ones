@@ -263,12 +263,18 @@ async function handleDropActivePair() {
 
 /* =========================================================
   [UI 12] 드롭 이후 보드 처리
-  - 합성 → 중력 → 재합성 반복
+  - 중력 적용 (먼저)
+  - 합성 시도 → 중력 → 재합성 반복
   - 모든 합성 완료 후 점수만 갱신
   - 게임 종료 판정은 handleDropActivePair()에서
     새 대기블럭 생성 후 처리
 ========================================================= */
 async function resolveBoardAfterDrop() {
+  // 드롭 직후 먼저 중력 적용
+  applyGravity();
+  renderBoardBlocks();
+  await sleep(GameConfig.animationDelay);
+
   let hasMerged = true;
 
   while (hasMerged) {

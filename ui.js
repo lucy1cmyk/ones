@@ -45,6 +45,8 @@ const UI = {
   pauseRestartButton: document.getElementById("pauseRestartButton")
 };
 
+let hasSavedGameOverScore = false;
+
 /* =========================================================
   [UI 02] 화면 크기 계산
 ========================================================= */
@@ -71,6 +73,7 @@ function initGridBackground() {
   - UI 팝업과 렌더링 초기화
 ========================================================= */
 function resetGame() {
+  hasSavedGameOverScore = false;
   resetGameState();
 
   hideGameOverModal();
@@ -148,33 +151,94 @@ function renderScoreChart(scores) {
     return;
   }
 
-  const maxScore = Math.max(...scores.map(record => record.score), 1);
+  const chartScores = scores.slice().reverse();
+  const maxScore = Math.max(...chartScores.map(record => record.score), 1);
+  const minX = 8;
+  const maxX = 92;
+  const minY = 16;
+  const maxY = 84;
+  const points = chartScores.map((record, index) => {
+    const x = chartScores.length === 1
+      ? 50
+      : minX + ((maxX - minX) * index) / (chartScores.length - 1);
+    const y = maxY - ((Number(record.score) || 0) / maxScore) * (maxY - minY);
 
-  scores.forEach((record, index) => {
-    const wrap = document.createElement("div");
-    wrap.className = "score-bar-wrap";
-
-    const value = document.createElement("span");
-    value.className = "score-bar-value";
-    value.textContent = record.score.toLocaleString("ko-KR");
-
-    const track = document.createElement("div");
-    track.className = "score-bar-track";
-
-    const bar = document.createElement("div");
-    bar.className = "score-bar";
-    bar.style.height = `${Math.max(4, (record.score / maxScore) * 100)}%`;
-
-    const label = document.createElement("span");
-    label.className = "score-bar-label";
-    label.textContent = index === 0 ? "이번" : `${index}전`;
-
-    track.appendChild(bar);
-    wrap.appendChild(value);
-    wrap.appendChild(track);
-    wrap.appendChild(label);
-    UI.scoreChart.appendChild(wrap);
+    return {
+      x,
+      y,
+      score: Number(record.score) || 0
+    };
   });
+
+  const stage = document.createElement("div");
+  stage.className = "score-line-stage";
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.classList.add("score-line-svg");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("aria-hidden", "true");
+
+  [minY, 50, maxY].forEach(y => {
+    const gridLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    gridLine.classList.add("score-line-grid");
+    gridLine.setAttribute("x1", "0");
+    gridLine.setAttribute("y1", String(y));
+    gridLine.setAttribute("x2", "100");
+    gridLine.setAttribute("y2", String(y));
+    svg.appendChild(gridLine);
+  });
+
+  const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  polyline.classList.add("score-line-path");
+  polyline.setAttribute("points", points.map(point => `${point.x},${point.y}`).join(" "));
+  svg.appendChild(polyline);
+
+  points.forEach(point => {
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.classList.add("score-line-dot");
+    circle.setAttribute("cx", String(point.x));
+    circle.setAttribute("cy", String(point.y));
+    circle.setAttribute("r", "2.8");
+    svg.appendChild(circle);
+  });
+
+  stage.appendChild(svg);
+
+  points.forEach(point => {
+    const value = document.createElement("span");
+    value.className = "score-line-value";
+    value.textContent = point.score.toLocaleString("ko-KR");
+    value.style.left = `${point.x}%`;
+    value.style.top = `${point.y}%`;
+    stage.appendChild(value);
+  });
+
+  const labels = document.createElement("div");
+  labels.className = "score-line-labels";
+  labels.style.gridTemplateColumns = `repeat(${chartScores.length}, minmax(0, 1fr))`;
+
+  chartScores.forEach((record, index) => {
+    const label = document.createElement("span");
+    label.className = "score-line-label";
+    label.textContent = index === chartScores.length - 1
+      ? "이번"
+      : `${chartScores.length - index - 1}회전`;
+    labels.appendChild(label);
+  });
+
+  UI.scoreChart.appendChild(stage);
+  UI.scoreChart.appendChild(labels);
+}
+
+async function saveGameOverScore() {
+  if (hasSavedGameOverScore) {
+    return;
+  }
+
+  hasSavedGameOverScore = true;
+  const finalScore = calculateScore();
+  await LocalStorageAdapter.saveScore(finalScore);
 }
 
 /* =========================================================
@@ -336,7 +400,7 @@ async function handleDropActivePair() {
     if (result.reason === "column-full") {
       if (shouldEndGameAfterDropResolve(result)) {
         GameState.isGameOver = true;
-        await LocalStorageAdapter.saveScore(GameState.score);
+        await saveGameOverScore();
         showGameOverModal();
       }
     }
@@ -364,7 +428,7 @@ async function handleDropActivePair() {
     if (shouldEndGameAfterDropResolve(result)) {
       GameState.isGameOver = true;
       renderPendingBlocks(result);
-      await LocalStorageAdapter.saveScore(GameState.score);
+      await saveGameOverScore();
       showGameOverModal();
     } else {
       /*

@@ -4,7 +4,7 @@
   - Saves only the latest 5 completed play scores on this device
 ========================================================= */
 
-const FirebaseAdapter = {
+const LocalStorageAdapter = {
   storageKey: "ones.recentScores",
   maxRecentScores: 5,
 

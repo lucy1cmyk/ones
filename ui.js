@@ -9,6 +9,22 @@
   [UI 01] DOM 참조
 ========================================================= */
 const UI = {
+  titleScreen: document.getElementById("titleScreen"),
+  startButton: document.getElementById("startButton"),
+  optionButton: document.getElementById("optionButton"),
+  optionModal: document.getElementById("optionModal"),
+  optionCloseButton: document.getElementById("optionCloseButton"),
+
+  resultScreen: document.getElementById("resultScreen"),
+  latestScoreButton: document.getElementById("latestScoreButton"),
+  latestScoreText: document.getElementById("latestScoreText"),
+  scoreChart: document.getElementById("scoreChart"),
+  resultRestartButton: document.getElementById("resultRestartButton"),
+  resultTitleButton: document.getElementById("resultTitleButton"),
+  restartConfirmModal: document.getElementById("restartConfirmModal"),
+  restartConfirmNoButton: document.getElementById("restartConfirmNoButton"),
+  restartConfirmYesButton: document.getElementById("restartConfirmYesButton"),
+
   gameScreen: document.getElementById("gameScreen"),
   playArea: document.getElementById("playArea"),
   boardWrap: document.getElementById("boardWrap"),
@@ -59,8 +75,50 @@ function resetGame() {
 
   hideGameOverModal();
   hidePauseModal();
+  hideOptionModal();
+  hideRestartConfirmModal();
 
   renderAll();
+}
+
+function showPuzzleScreen() {
+  UI.titleScreen.classList.remove("active");
+  UI.resultScreen.classList.remove("active");
+  UI.gameScreen.classList.add("active");
+  resetGame();
+}
+
+function showTitleScreen() {
+  hideGameOverModal();
+  hidePauseModal();
+  hideOptionModal();
+  hideRestartConfirmModal();
+
+  UI.gameScreen.classList.remove("active");
+  UI.resultScreen.classList.remove("active");
+  UI.titleScreen.classList.add("active");
+}
+
+async function showResultScreen() {
+  hideGameOverModal();
+  hidePauseModal();
+  hideOptionModal();
+  hideRestartConfirmModal();
+
+  UI.titleScreen.classList.remove("active");
+  UI.gameScreen.classList.remove("active");
+  UI.resultScreen.classList.add("active");
+
+  const recentScores = await LocalStorageAdapter.loadRecentScores();
+  renderResultScreen(recentScores);
+}
+
+function isPuzzleScreenActive() {
+  return UI.gameScreen.classList.contains("active");
+}
+
+function isResultScreenActive() {
+  return UI.resultScreen.classList.contains("active");
 }
 
 /* =========================================================
@@ -69,6 +127,54 @@ function resetGame() {
 function updateScoreUI() {
   const score = calculateScore();
   UI.scoreText.textContent = score.toLocaleString("ko-KR");
+}
+
+function renderResultScreen(recentScores) {
+  const scores = Array.isArray(recentScores) ? recentScores.slice(0, 5) : [];
+  const latestScore = scores[0]?.score ?? GameState.score ?? 0;
+
+  UI.latestScoreText.textContent = latestScore.toLocaleString("ko-KR");
+  renderScoreChart(scores);
+}
+
+function renderScoreChart(scores) {
+  UI.scoreChart.innerHTML = "";
+
+  if (!scores.length) {
+    const message = document.createElement("p");
+    message.className = "empty-chart-message";
+    message.textContent = "최근 플레이 기록이 없습니다";
+    UI.scoreChart.appendChild(message);
+    return;
+  }
+
+  const maxScore = Math.max(...scores.map(record => record.score), 1);
+
+  scores.forEach((record, index) => {
+    const wrap = document.createElement("div");
+    wrap.className = "score-bar-wrap";
+
+    const value = document.createElement("span");
+    value.className = "score-bar-value";
+    value.textContent = record.score.toLocaleString("ko-KR");
+
+    const track = document.createElement("div");
+    track.className = "score-bar-track";
+
+    const bar = document.createElement("div");
+    bar.className = "score-bar";
+    bar.style.height = `${Math.max(4, (record.score / maxScore) * 100)}%`;
+
+    const label = document.createElement("span");
+    label.className = "score-bar-label";
+    label.textContent = index === 0 ? "이번" : `${index}전`;
+
+    track.appendChild(bar);
+    wrap.appendChild(value);
+    wrap.appendChild(track);
+    wrap.appendChild(label);
+    UI.scoreChart.appendChild(wrap);
+  });
 }
 
 /* =========================================================
@@ -217,7 +323,7 @@ function handleMoveActivePair(direction) {
     보드가 꽉 찼을 때 게임오버 처리
 ========================================================= */
 async function handleDropActivePair() {
-  if (!canControlGame()) return;
+  if (!isPuzzleScreenActive() || !canControlGame()) return;
 
   const result = prepareDropActivePair();
 
@@ -230,7 +336,7 @@ async function handleDropActivePair() {
     if (result.reason === "column-full") {
       if (shouldEndGameAfterDropResolve(result)) {
         GameState.isGameOver = true;
-        await FirebaseAdapter.saveScore(GameState.score);
+        await LocalStorageAdapter.saveScore(GameState.score);
         showGameOverModal();
       }
     }
@@ -258,7 +364,7 @@ async function handleDropActivePair() {
     if (shouldEndGameAfterDropResolve(result)) {
       GameState.isGameOver = true;
       renderPendingBlocks(result);
-      await FirebaseAdapter.saveScore(GameState.score);
+      await LocalStorageAdapter.saveScore(GameState.score);
       showGameOverModal();
     } else {
       /*
@@ -302,7 +408,7 @@ async function resolveBoardAfterDrop(dropResult) {
       await sleep(GameConfig.animationDelay);
     }
 
-    const groups = findMergeGroups();
+    const groups = findMergeGroups(dropResult);
 
     if (groups.length === 0) {
       const didChange =
@@ -322,11 +428,9 @@ async function resolveBoardAfterDrop(dropResult) {
 
     await animateMergeGroups(groups);
 
-    applyMergeGroups(groups);
-    renderBoardBlocks();
-    await sleep(GameConfig.animationDelay);
-
+    applyMergeGroups(groups, dropResult);
     const didGravityMove = applyGravityWithPending(dropResult);
+    renderPendingBlocks(dropResult);
     renderBoardBlocks();
     await sleep(GameConfig.animationDelay);
 
@@ -359,6 +463,8 @@ async function animateMergeGroups(groups) {
     const target = getMergeTargetCell(group);
 
     group.forEach(cell => {
+      if (cell.isPending || !isInsideGrid(cell.row, cell.col)) return;
+
       const block = GameState.grid[cell.row][cell.col];
 
       if (!block) return;
@@ -405,6 +511,22 @@ function hidePauseModal() {
   UI.pauseModal.classList.remove("active");
 }
 
+function showOptionModal() {
+  UI.optionModal.classList.add("active");
+}
+
+function hideOptionModal() {
+  UI.optionModal.classList.remove("active");
+}
+
+function showRestartConfirmModal() {
+  UI.restartConfirmModal.classList.add("active");
+}
+
+function hideRestartConfirmModal() {
+  UI.restartConfirmModal.classList.remove("active");
+}
+
 /* =========================================================
   [UI 16] 입력 처리
   - 터치 / 마우스 모두 대응
@@ -436,7 +558,7 @@ function handlePointerUp(event) {
 
   event.preventDefault();
 
-  if (!canControlGame()) return;
+  if (!isPuzzleScreenActive() || !canControlGame()) return;
 
   const dx = event.clientX - pointerStartX;
   const dy = event.clientY - pointerStartY;
@@ -490,6 +612,18 @@ function preventBrowserGesture(event) {
 /* =========================================================
   [UI 17] 버튼 이벤트
 ========================================================= */
+UI.startButton.addEventListener("click", () => {
+  showPuzzleScreen();
+});
+
+UI.optionButton.addEventListener("click", () => {
+  showOptionModal();
+});
+
+UI.optionCloseButton.addEventListener("click", () => {
+  hideOptionModal();
+});
+
 UI.pauseButton.addEventListener("click", () => {
   if (GameState.isGameOver) return;
 
@@ -498,6 +632,26 @@ UI.pauseButton.addEventListener("click", () => {
 
 UI.restartButton.addEventListener("click", () => {
   resetGame();
+});
+
+UI.latestScoreButton.addEventListener("click", () => {
+  showRestartConfirmModal();
+});
+
+UI.resultRestartButton.addEventListener("click", () => {
+  showRestartConfirmModal();
+});
+
+UI.resultTitleButton.addEventListener("click", () => {
+  showTitleScreen();
+});
+
+UI.restartConfirmNoButton.addEventListener("click", () => {
+  hideRestartConfirmModal();
+});
+
+UI.restartConfirmYesButton.addEventListener("click", () => {
+  showPuzzleScreen();
 });
 
 UI.resumeButton.addEventListener("click", () => {
@@ -513,12 +667,8 @@ UI.gameOverNoButton.addEventListener("click", () => {
   resetGame();
 });
 
-UI.gameOverYesButton.addEventListener("click", () => {
-  // 현재는 결과 화면이 없으므로 콘솔 출력
-  // 이후 result-screen으로 이동하도록 교체
-  console.log("결과 화면 이동 예정. 현재 점수:", GameState.score);
-
-  hideGameOverModal();
+UI.gameOverYesButton.addEventListener("click", async () => {
+  await showResultScreen();
 });
 
 /* =========================================================
@@ -541,6 +691,10 @@ document.addEventListener("gestureend", preventBrowserGesture);
 ========================================================= */
 window.addEventListener("resize", () => {
   renderAll();
+
+  if (isResultScreenActive()) {
+    LocalStorageAdapter.loadRecentScores().then(renderResultScreen);
+  }
 });
 
 /* =========================================================
@@ -549,7 +703,7 @@ window.addEventListener("resize", () => {
   - 실제 모바일 출시 시 제거 가능
 ========================================================= */
 window.addEventListener("keydown", event => {
-  if (!canControlGame()) return;
+  if (!isPuzzleScreenActive() || !canControlGame()) return;
 
   if (event.key === "ArrowLeft") {
     handleMoveActivePair(-1);
@@ -572,6 +726,6 @@ window.addEventListener("keydown", event => {
 /* =========================================================
   [UI 21] 앱 시작
 ========================================================= */
-FirebaseAdapter.init();
+LocalStorageAdapter.init();
 initGridBackground();
 resetGame();

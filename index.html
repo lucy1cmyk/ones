@@ -16,6 +16,34 @@
     - 이후 title-screen, result-screen, option-screen 추가 가능
   ========================================================= -->
   <div class="app-shell">
+    <section id="titleScreen" class="title-screen active" aria-label="타이틀 화면">
+      <div class="title-logo">
+        <span class="title-kicker">NUMBER PUZZLE</span>
+        <h1 class="title-heading">ONES</h1>
+      </div>
+
+      <button id="startButton" class="title-start-button" type="button">
+        시작
+      </button>
+
+      <button id="optionButton" class="ui-button title-option-button" type="button">
+        옵션
+      </button>
+
+      <div id="optionModal" class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal">
+          <h2 class="modal-title">옵션</h2>
+          <p class="modal-message">아직 조정할 옵션이 없습니다.</p>
+
+          <div class="modal-actions">
+            <button id="optionCloseButton" class="modal-button primary" type="button">
+              닫기
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <main id="gameScreen" class="game-screen" aria-label="퍼즐 화면">
 
       <!-- =====================================================
@@ -99,12 +127,47 @@
       </div>
 
     </main>
+
+    <section id="resultScreen" class="result-screen" aria-label="결과 화면">
+      <button id="latestScoreButton" class="latest-score-button" type="button">
+        <span class="result-label">LATEST SCORE</span>
+        <span id="latestScoreText" class="latest-score-text">0</span>
+      </button>
+
+      <section class="score-chart-panel" aria-label="최근 5회 플레이 스코어 비교 그래프">
+        <div id="scoreChart" class="score-chart"></div>
+      </section>
+
+      <button id="resultRestartButton" class="ui-button result-restart-button" type="button">
+        다시 시작하기
+      </button>
+
+      <button id="resultTitleButton" class="ui-button result-title-button" type="button">
+        타이틀로 가기
+      </button>
+
+      <div id="restartConfirmModal" class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal">
+          <h2 class="modal-title">다시 시작</h2>
+          <p class="modal-message">다시 시작하시겠습니까?</p>
+
+          <div class="modal-actions">
+            <button id="restartConfirmNoButton" class="modal-button" type="button">
+              아니오
+            </button>
+            <button id="restartConfirmYesButton" class="modal-button primary" type="button">
+              예
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <!-- =========================================================
     [JS 연결 순서]
-    1. firebase-adapter.js
-      - Firebase Auth / Firestore 연결 예정 영역
+    1. local-storage-adapter.js
+      - localStorage 점수 저장 영역
 
     2. game.js
       - 순수 게임 데이터와 게임 규칙
@@ -112,7 +175,7 @@
     3. ui.js
       - DOM 렌더링, 입력 처리, 버튼 처리
   ========================================================= -->
-  <script src="./firebase-adapter.js"></script>
+  <script src="./local-storage-adapter.js"></script>
   <script src="./game.js"></script>
   <script src="./ui.js"></script>
 </body>

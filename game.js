@@ -478,7 +478,11 @@ function getPendingSnapshot(dropResult) {
   - 상하좌우 연결된 같은 숫자 블록이 3개 이상이면 합성
   - 대각선은 연결로 보지 않음
 ========================================================= */
-function findMergeGroups() {
+function findMergeGroups(dropResult = null) {
+  if (dropResult && Array.isArray(dropResult.pendingBlocks)) {
+    return findMergeGroupsWithPending(dropResult);
+  }
+
   const visited = Array.from({ length: GameConfig.rows }, () =>
     Array.from({ length: GameConfig.cols }, () => false)
   );
@@ -502,6 +506,89 @@ function findMergeGroups() {
   }
 
   return groups;
+}
+
+function findMergeGroupsWithPending(dropResult) {
+  const allCells = [];
+  const visited = new Set();
+  const groups = [];
+
+  for (let row = 0; row < GameConfig.rows; row++) {
+    for (let col = 0; col < GameConfig.cols; col++) {
+      const block = GameState.grid[row][col];
+
+      if (!block) continue;
+
+      allCells.push({
+        key: `grid-${row}-${col}`,
+        row,
+        col,
+        block,
+        isPending: false
+      });
+    }
+  }
+
+  dropResult.pendingBlocks
+    .filter(pendingBlock => !pendingBlock.hasResolved)
+    .forEach(pendingBlock => {
+      allCells.push({
+        key: `pending-${pendingBlock.turnBlockId}`,
+        row: pendingBlock.row,
+        col: pendingBlock.col,
+        block: pendingBlock.block,
+        pendingBlock,
+        isPending: true
+      });
+    });
+
+  allCells.forEach(startCell => {
+    if (visited.has(startCell.key)) return;
+
+    const group = collectSameValueCells(startCell, allCells, visited);
+
+    if (group.length >= GameConfig.mergeNeedCount) {
+      groups.push(group);
+    }
+  });
+
+  return groups;
+}
+
+function collectSameValueCells(startCell, allCells, visited) {
+  const queue = [startCell];
+  const group = [];
+  const value = startCell.block.value;
+  const directions = [
+    { dr: -1, dc: 0 },
+    { dr: 1, dc: 0 },
+    { dr: 0, dc: -1 },
+    { dr: 0, dc: 1 }
+  ];
+
+  visited.add(startCell.key);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    group.push(current);
+
+    directions.forEach(direction => {
+      const nextRow = current.row + direction.dr;
+      const nextCol = current.col + direction.dc;
+      const nextCell = allCells.find(cell =>
+        cell.row === nextRow &&
+        cell.col === nextCol &&
+        cell.block.value === value
+      );
+
+      if (!nextCell || visited.has(nextCell.key)) return;
+
+      visited.add(nextCell.key);
+      queue.push(nextCell);
+    });
+  }
+
+  return group;
 }
 
 function collectSameValueGroup(startRow, startCol, value, visited) {
@@ -560,10 +647,12 @@ function getMergeTargetCell(group) {
   - 실제 grid 데이터 변경
   - 애니메이션은 UI JS에서 담당
 ========================================================= */
-function applyMergeGroups(groups) {
+function applyMergeGroups(groups, dropResult = null) {
   groups.forEach(group => {
     const target = getMergeTargetCell(group);
-    const targetBlock = GameState.grid[target.row][target.col];
+    const targetBlock = target.isPending
+      ? target.block
+      : GameState.grid[target.row][target.col];
 
     if (!targetBlock) return;
 
@@ -574,12 +663,26 @@ function applyMergeGroups(groups) {
 
     // 그룹 전체 제거
     group.forEach(cell => {
+      if (cell.isPending) {
+        cell.pendingBlock.hasResolved = true;
+        return;
+      }
+
       GameState.grid[cell.row][cell.col] = null;
     });
 
+    if (dropResult && Array.isArray(dropResult.pendingBlocks)) {
+      dropResult.pendingBlocks = dropResult.pendingBlocks.filter(
+        pendingBlock => !pendingBlock.hasResolved
+      );
+      updatePendingVirtualRows(dropResult);
+    }
+
     // 목표 위치에 합성 블록 생성
-    const mergedBlock = createBlock(nextValue, target.row, target.col);
-    GameState.grid[target.row][target.col] = mergedBlock;
+    if (!target.isPending) {
+      const mergedBlock = createBlock(nextValue, target.row, target.col);
+      GameState.grid[target.row][target.col] = mergedBlock;
+    }
   });
 }
 

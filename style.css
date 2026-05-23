@@ -29,7 +29,9 @@ body {
 }
 
 .app-shell,
+.title-screen,
 .game-screen,
+.result-screen,
 .play-area,
 .board-wrap,
 .top-ui,
@@ -63,7 +65,9 @@ button {
   background: #111;
 }
 
-.game-screen {
+.title-screen,
+.game-screen,
+.result-screen {
   position: relative;
   width: min(100vw, 56.25vh);
   width: min(100vw, 56.25dvh);
@@ -72,6 +76,77 @@ button {
   overflow: hidden;
   background: #20232a;
   color: #fff;
+}
+
+.title-screen:not(.active),
+.game-screen:not(.active),
+.result-screen:not(.active) {
+  display: none;
+}
+
+.title-screen.active,
+.game-screen.active,
+.result-screen.active {
+  display: block;
+}
+
+/* =========================================================
+  [CSS 02-1] 타이틀 화면
+========================================================= */
+.title-screen {
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0) 26%),
+    #20232a;
+}
+
+.title-logo {
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 86%;
+  text-align: center;
+  pointer-events: none;
+}
+
+.title-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: rgba(255,255,255,0.64);
+  font-size: clamp(11px, 1.7dvh, 13px);
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.title-heading {
+  color: #fff;
+  font-size: clamp(48px, 10dvh, 78px);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.title-start-button {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(148px, 28dvh, 196px);
+  min-height: clamp(52px, 7.6dvh, 64px);
+  background: #f0b13e;
+  color: #1b1b1b;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 0;
+  font-size: clamp(18px, 2.8dvh, 22px);
+  font-weight: 900;
+}
+
+.title-option-button {
+  position: absolute;
+  z-index: 20;
+  left: clamp(12px, 2.4dvh, 18px);
+  bottom: max(12px, env(safe-area-inset-bottom));
+  width: clamp(78px, 13dvh, 96px);
 }
 
 /* =========================================================
@@ -343,4 +418,142 @@ button {
 .modal-button.primary {
   background: #f0b13e;
   color: #1b1b1b;
+}
+
+/* =========================================================
+  [CSS 08] Result screen
+========================================================= */
+.result-screen {
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0) 26%),
+    #20232a;
+}
+
+.latest-score-button {
+  position: absolute;
+  z-index: 20;
+  top: max(18px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(82%, 42dvh);
+  min-height: clamp(82px, 13dvh, 112px);
+  padding: clamp(12px, 2dvh, 16px);
+  background: rgba(0,0,0,0.32);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 0;
+  text-align: center;
+}
+
+.result-label {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(255,255,255,0.68);
+  font-size: clamp(11px, 1.7dvh, 13px);
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.latest-score-text {
+  display: block;
+  font-size: clamp(34px, 7dvh, 56px);
+  font-weight: 900;
+  line-height: 1;
+  color: #f0b13e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-chart-panel {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(88%, 46dvh);
+  height: clamp(190px, 32dvh, 250px);
+  padding: clamp(14px, 2.4dvh, 18px);
+  background: rgba(0,0,0,0.24);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.score-chart {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+  gap: clamp(8px, 1.7dvh, 12px);
+}
+
+.score-bar-wrap {
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 7px;
+}
+
+.score-bar-value {
+  min-height: 16px;
+  color: rgba(255,255,255,0.84);
+  font-size: clamp(10px, 1.55dvh, 12px);
+  font-weight: 800;
+  line-height: 1;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-bar-track {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.score-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 2px;
+  background: #f0b13e;
+}
+
+.score-bar-label {
+  color: rgba(255,255,255,0.58);
+  font-size: clamp(10px, 1.45dvh, 11px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.empty-chart-message {
+  grid-column: 1 / -1;
+  align-self: center;
+  justify-self: center;
+  color: rgba(255,255,255,0.62);
+  font-size: clamp(13px, 2dvh, 15px);
+  font-weight: 700;
+}
+
+.result-restart-button,
+.result-title-button {
+  position: absolute;
+  z-index: 20;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  width: clamp(112px, 18dvh, 140px);
+}
+
+.result-restart-button {
+  left: clamp(12px, 2.4dvh, 18px);
+}
+
+.result-title-button {
+  right: clamp(12px, 2.4dvh, 18px);
 }

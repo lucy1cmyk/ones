@@ -1,42 +1,4 @@
-/* ===== Firebase SDK 초기화 ===== */
-
-/*
-  Firebase CDN SDK를 index.html에서 먼저 불러온 뒤,
-  아래 설정 객체를 사용해 Firebase를 초기화한다.
-*/
-
-const firebaseConfig = {
-    apiKey: "AIzaSyCTQeos4Wd82Xj4LHgTFHRdC2E_DjZo3-4",
-    authDomain: "doodlestest.firebaseapp.com",
-    projectId: "doodlestest",
-    storageBucket: "doodlestest.firebasestorage.app",
-    messagingSenderId: "901994494260",
-    appId: "1:901994494260:web:7cb56fd056d24987cccd61"
-};
-
-/*
-  Firebase SDK가 정상적으로 로드되었는지 확인 후 초기화
-*/
-if (typeof firebase !== "undefined") {
-
-    /* Firebase 앱 초기화 */
-    firebase.initializeApp(firebaseConfig);
-
-    /* Firestore 사용 */
-    const db = firebase.firestore();
-
-    /* Google 로그인 사용 시 */
-    const auth = firebase.auth();
-
-    console.log("Firebase 초기화 완료");
-
-} else {
-
-    console.error("Firebase SDK 로드 실패");
-
-}
-
-/* ===== 게임 기본 설정 ===== */
+/* ===== Game settings ===== */
 const GRID_SIZE = 5;
 const MAX_BLOCK_NUMBER = 15;
 

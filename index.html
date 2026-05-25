@@ -33,7 +33,12 @@
       <div id="optionModal" class="modal-backdrop" role="dialog" aria-modal="true">
         <div class="modal">
           <h2 class="modal-title">옵션</h2>
-          <p class="modal-message">아직 조정할 옵션이 없습니다.</p>
+          <section class="option-score-panel" aria-label="결과스코어 그래프">
+            <div class="option-score-header">
+              <span class="result-label">RESULT SCORE</span>
+            </div>
+            <div id="optionScoreChart" class="score-chart option-score-chart"></div>
+          </section>
 
           <div class="modal-actions">
             <button id="optionCloseButton" class="modal-button primary" type="button">

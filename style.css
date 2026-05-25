@@ -394,6 +394,25 @@ button {
   margin-bottom: 18px;
 }
 
+.option-score-panel {
+  width: 100%;
+  min-height: clamp(182px, 30dvh, 232px);
+  margin-bottom: 18px;
+  padding: clamp(12px, 2.2dvh, 16px);
+  background: rgba(0,0,0,0.24);
+  border: 1px solid rgba(255,255,255,0.12);
+  text-align: left;
+}
+
+.option-score-header {
+  margin-bottom: clamp(10px, 1.8dvh, 12px);
+  text-align: center;
+}
+
+.option-score-chart {
+  height: clamp(138px, 23dvh, 180px);
+}
+
 .modal-actions {
   display: flex;
   gap: 8px;

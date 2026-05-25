@@ -13,6 +13,7 @@ const UI = {
   startButton: document.getElementById("startButton"),
   optionButton: document.getElementById("optionButton"),
   optionModal: document.getElementById("optionModal"),
+  optionScoreChart: document.getElementById("optionScoreChart"),
   optionCloseButton: document.getElementById("optionCloseButton"),
 
   resultScreen: document.getElementById("resultScreen"),
@@ -137,17 +138,17 @@ function renderResultScreen(recentScores) {
   const latestScore = scores[0]?.score ?? GameState.score ?? 0;
 
   UI.latestScoreText.textContent = latestScore.toLocaleString("ko-KR");
-  renderScoreChart(scores);
+  renderScoreChart(scores, UI.scoreChart);
 }
 
-function renderScoreChart(scores) {
-  UI.scoreChart.innerHTML = "";
+function renderScoreChart(scores, targetElement = UI.scoreChart) {
+  targetElement.innerHTML = "";
 
   if (!scores.length) {
     const message = document.createElement("p");
     message.className = "empty-chart-message";
     message.textContent = "최근 플레이 기록이 없습니다";
-    UI.scoreChart.appendChild(message);
+    targetElement.appendChild(message);
     return;
   }
 
@@ -227,8 +228,15 @@ function renderScoreChart(scores) {
     labels.appendChild(label);
   });
 
-  UI.scoreChart.appendChild(stage);
-  UI.scoreChart.appendChild(labels);
+  targetElement.appendChild(stage);
+  targetElement.appendChild(labels);
+}
+
+async function renderOptionScoreChart() {
+  const recentScores = await LocalStorageAdapter.loadRecentScores();
+  const scores = Array.isArray(recentScores) ? recentScores.slice(0, 5) : [];
+
+  renderScoreChart(scores, UI.optionScoreChart);
 }
 
 async function saveGameOverScore() {
@@ -575,7 +583,8 @@ function hidePauseModal() {
   UI.pauseModal.classList.remove("active");
 }
 
-function showOptionModal() {
+async function showOptionModal() {
+  await renderOptionScoreChart();
   UI.optionModal.classList.add("active");
 }
 
@@ -680,8 +689,8 @@ UI.startButton.addEventListener("click", () => {
   showPuzzleScreen();
 });
 
-UI.optionButton.addEventListener("click", () => {
-  showOptionModal();
+UI.optionButton.addEventListener("click", async () => {
+  await showOptionModal();
 });
 
 UI.optionCloseButton.addEventListener("click", () => {
